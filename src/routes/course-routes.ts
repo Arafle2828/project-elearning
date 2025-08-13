@@ -14,6 +14,12 @@ const courseController = require('../controllers/course-controller');
 // GET /api/courses
 router.get('/', courseController.index);
 
+// GET /api/courses/search - search & filter courses
+router.get('/search', courseController.search);
+
+// GET /api/courses/categories - get course categories
+router.get('/categories', courseController.getCategories);
+
 // GET /api/courses/{slug}
 router.get('/:slug', courseController.show);
 

@@ -1,4 +1,5 @@
 import { Course } from '../models/course-model';
+import { generateSlug, generateUniqueSlug } from '../utilities/slug';
 
 const courseRepository = require('../repositories/course-repository');
 const filesystem = require('../utilities/filesystem');
@@ -18,6 +19,16 @@ exports.getCourseBySlug = async (slug: string) => {
   }
 
   return courses;
+};
+
+// search & filter kursus
+exports.searchCourses = async (filters: any) => {
+  return await courseRepository.searchCourses(filters);
+};
+
+// mendapatkan categories
+exports.getCategories = async () => {
+  return await courseRepository.getCategories();
 };
 
 // menambahkan kursus baru

@@ -1,17 +1,16 @@
 import { Request, Response } from 'express';
-// import { AuthenticatedRequest } from '../types/authenticated-request-type';
 
-const courseService = require('../services/course-service');
+const bookService = require('../services/book-service');
 
-// mendapatkan list kursus
+// mendapatkan list buku
 exports.index = async (req: Request, res: Response) => {
   try {
-    const courses = await courseService.getAllCourses();
+    const books = await bookService.getAllBooks();
 
     return res.status(200).json({
       statusCode: 200,
-      message: 'Berhasil mendapatkan data kursus!',
-      data: courses,
+      message: 'Berhasil mendapatkan data buku!',
+      data: books,
     });
 
   } catch (error) {
@@ -23,13 +22,14 @@ exports.index = async (req: Request, res: Response) => {
   }
 }
 
-// search & filter kursus
+// search & filter buku
 exports.search = async (req: Request, res: Response) => {
   try {
     const { 
       search, 
       category, 
-      level, 
+      author, 
+      language,
       minPrice, 
       maxPrice, 
       page = 1, 
@@ -41,7 +41,8 @@ exports.search = async (req: Request, res: Response) => {
     const filters = {
       search: search as string,
       category: category as string,
-      level: level as string,
+      author: author as string,
+      language: language as string,
       minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
       maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
       page: parseInt(page as string),
@@ -50,12 +51,12 @@ exports.search = async (req: Request, res: Response) => {
       sortOrder: sortOrder as 'asc' | 'desc'
     };
 
-    const result = await courseService.searchCourses(filters);
+    const result = await bookService.searchBooks(filters);
 
     return res.status(200).json({
       statusCode: 200,
-      message: 'Berhasil mendapatkan data kursus!',
-      data: result.courses,
+      message: 'Berhasil mendapatkan data buku!',
+      data: result.books,
       pagination: {
         currentPage: filters.page,
         totalPages: Math.ceil(result.total / filters.limit),
@@ -73,14 +74,128 @@ exports.search = async (req: Request, res: Response) => {
   }
 }
 
-// mendapatkan categories
-exports.getCategories = async (req: Request, res: Response) => {
+// mendapatkan buku berdasarkan slug
+exports.show = async (req: Request, res: Response) => {
+  const { slug } = req.params;
+
   try {
-    const categories = await courseService.getCategories();
+    const book = await bookService.getBookBySlug(slug);
+
+    if (!book) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: 'Buku tidak ditemukan',
+      });
+    }
 
     return res.status(200).json({
       statusCode: 200,
-      message: 'Berhasil mendapatkan kategori!',
+      message: 'Berhasil mendapatkan data buku!',
+      data: book,
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      statusCode: 500,
+      message: 'Error internal server!',
+    });
+  }
+}
+
+// menambahkan buku baru
+exports.create = async (req: Request, res: Response) => {
+  const data = req.body;
+  const files: any = req.files;
+  data.files = files;
+
+  try {
+    const newBook = await bookService.addBook(data);
+
+    return res.status(201).json({
+      statusCode: 201,
+      message: 'Berhasil menambahkan buku baru!',
+      data: newBook,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      statusCode: 500,
+      message: 'Error internal server!',
+    });
+  }
+};
+
+// mengubah buku
+exports.update = async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  const data = req.body;
+  const files: any = req.files;
+  data.files = files;
+  
+  try {
+    const existingBook = await bookService.getBookBySlug(slug);
+    if (!existingBook) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: 'Buku tidak ditemukan',
+      });
+    }
+
+    const updatedBook = await bookService.updateBook(existingBook, data);
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: 'Berhasil mengubah data buku!',
+      data: updatedBook,
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      statusCode: 500,
+      message: 'Error internal server!',
+    });
+  }
+};
+
+// menghapus buku
+exports.destroy = async (req: Request, res: Response) => {
+  const { slug } = req.params;
+
+  try {
+    const existingBook = await bookService.getBookBySlug(slug);
+    if (!existingBook) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: 'Buku tidak ditemukan',
+      });
+    }
+
+    await bookService.deleteBook(existingBook);
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: 'Berhasil menghapus buku!',
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      statusCode: 500,
+      message: 'Error internal server!',
+    });
+  }
+};
+
+// mendapatkan categories buku
+exports.getCategories = async (req: Request, res: Response) => {
+  try {
+    const categories = await bookService.getCategories();
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: 'Berhasil mendapatkan kategori buku!',
       data: categories,
     });
 
@@ -92,144 +207,3 @@ exports.getCategories = async (req: Request, res: Response) => {
     });
   }
 }
-
-// mendapatkan kursus berdasarkan slug
-exports.show = async (req: Request, res: Response) => {
-  const { slug } = req.params;
-
-  try {
-    const course = await courseService.getCourseBySlug(slug);
-
-    if (!course) {
-      return res.status(404).json({
-        statusCode: 404,
-        message: 'Kursus tidak ditemukan',
-      });
-    }
-
-    return res.status(200).json({
-      statusCode: 200,
-      message: 'Berhasil mendapatkan data kursus!',
-      data: course,
-    });
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      statusCode: 500,
-      message: 'Error internal server!',
-    });
-  }
-}
-
-// menambahkan kursus baru
-exports.create = async (req: Request, res: Response) => {
-  const data = req.body;
-  const files: any = req.files;
-  data.files = files;
-
-  try {
-    const newCourse = await courseService.addCourse(data);
-
-    return res.status(201).json({
-      statusCode: 201,
-      message: 'Berhasil menambahkan kursus baru!',
-      data: newCourse,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      statusCode: 500,
-      message: 'Error internal server!',
-    });
-  }
-};
-
-// mengubah kursus
-exports.update = async (req: Request, res: Response) => {
-  const { slug } = req.params;
-  const data = req.body;
-  const files: any = req.files;
-  data.files = files;
-  
-  try {
-    const existingCourse = await courseService.getCourseBySlug(slug);
-    if (!existingCourse) {
-      return res.status(404).json({
-        statusCode: 404,
-        message: 'Kursus tidak ditemukan',
-      });
-    }
-
-    const updatedCourse = await courseService.updateCourse(existingCourse, data);
-
-    return res.status(201).json({
-      statusCode: 201,
-      message: 'Berhasil mengubah data kursus!',
-      data: updatedCourse,
-    });
-    
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      statusCode: 500,
-      message: 'Error internal server!',
-    });
-  }
-};
-
-// menghapus kursus
-exports.destroy = async (req: Request, res: Response) => {
-  const { slug } = req.params;
-
-  try {
-    const existingCourse = await courseService.getCourseBySlug(slug);
-    if (!existingCourse) {
-      return res.status(404).json({
-        statusCode: 404,
-        message: 'Kursus tidak ditemukan',
-      });
-    }
-
-    const deletedCourse = await courseService.deleteCourse(existingCourse);
-
-    return res.status(200).json({
-      statusCode: 200,
-      message: 'Berhasil menghapus data kursus!',
-      data: deletedCourse,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      statusCode: 500,
-      message: 'Error internal server!',
-    });
-  }
-};
-
-
-// // mendapatkan list kursus yang diikuti pengguna
-// exports.enrolledCourses = async (req: AuthenticatedRequest, res: Response) => {
-//   try {
-//     const enrolledCourses = courseService.getEnrolledCourse();
-
-//     if (!enrolledCourses || enrolledCourses.length === 0) {
-//       return res.status(404).json({
-//         statusCode: 404,
-//         message: 'Data kursus yang diikuti kosong!',
-//       });
-//     }
-
-//     return res.status(200).json({
-//       statusCode: 200,
-//       message: 'Sukses mendapatkan kursus yang diikuti!',
-//       data: enrolledCourses,
-//     });
-//   } catch (error: any) {
-//     console.error(error);
-//     return res.status(500).json({
-//       statusCode: 500,
-//       message: 'Error internal server!',
-//     });
-//   }
-// };

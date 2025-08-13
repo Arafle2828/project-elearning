@@ -16,10 +16,21 @@ router.get('/', (req: any, res: any) => {
       },
       courses: {
         getAll: 'GET /api/courses',
+        search: 'GET /api/courses/search',
+        categories: 'GET /api/courses/categories',
         getBySlug: 'GET /api/courses/:slug',
         create: 'POST /api/courses',
         update: 'PUT /api/courses/:slug',
         delete: 'DELETE /api/courses/:slug'
+      },
+      books: {
+        getAll: 'GET /api/books',
+        search: 'GET /api/books/search',
+        categories: 'GET /api/books/categories',
+        getBySlug: 'GET /api/books/:slug',
+        create: 'POST /api/books',
+        update: 'PUT /api/books/:slug',
+        delete: 'DELETE /api/books/:slug'
       },
       users: {
         getAll: 'GET /api/users',
@@ -38,5 +49,8 @@ router.use('/auth', require('./auth-routes'));
 // router.use('/users', require('./user-routes'));
 
 router.use('/courses', require('./course-routes'));
+
+// handle semua route /api/books ke router book
+router.use('/books', require('./book-routes'));
 
 module.exports = router;
