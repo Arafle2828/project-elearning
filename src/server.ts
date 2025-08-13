@@ -4,7 +4,22 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 
-const apiRoutes = require('./routes');
+// Import routes dengan error handling
+let apiRoutes;
+try {
+  apiRoutes = require('./routes');
+} catch (error) {
+  console.error('Error loading routes:', error);
+  // Fallback routes untuk menghindari crash
+  apiRoutes = require('express').Router();
+  apiRoutes.get('*', (req: any, res: any) => {
+    res.status(500).json({
+      statusCode: 500,
+      message: 'Server configuration error',
+      error: 'Routes loading failed'
+    });
+  });
+}
 
 const app = express();
 const upload = multer();
@@ -48,9 +63,28 @@ app.use('*', (req: any, res: any) => {
   });
 });
 
-// event loop
-app.listen(PORT, () => {
-  console.log(`Server berjalan di http://localhost:${PORT}`);
+// Global error handler
+app.use((error: any, req: any, res: any, next: any) => {
+  console.error('Global error handler:', error);
+  res.status(500).json({
+    statusCode: 500,
+    message: 'Internal Server Error',
+    status: 'error',
+    timestamp: new Date().toISOString(),
+    ...(process.env.NODE_ENV !== 'production' && { 
+      error: error.message,
+      stack: error.stack 
+    })
+  });
 });
 
+// event loop
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server berjalan di http://localhost:${PORT}`);
+  });
+}
+
+// Export untuk Vercel serverless function
+module.exports = app;
 export default app;
