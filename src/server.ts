@@ -4,23 +4,6 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 
-// Import routes dengan error handling
-let apiRoutes;
-try {
-  apiRoutes = require('./routes');
-} catch (error) {
-  console.error('Error loading routes:', error);
-  // Fallback routes untuk menghindari crash
-  apiRoutes = require('express').Router();
-  apiRoutes.get('*', (req: any, res: any) => {
-    res.status(500).json({
-      statusCode: 500,
-      message: 'Server configuration error',
-      error: 'Routes loading failed'
-    });
-  });
-}
-
 const app = express();
 const upload = multer();
 const PORT = process.env.PORT || 3000;
@@ -48,8 +31,20 @@ app.get('/', (req: any, res: any) => {
   });
 });
 
-// handle seluruh request /api/* ke route API
-app.use('/api', apiRoutes);
+// Import routes dengan error handling
+try {
+  const apiRoutes = require('./routes');
+  app.use('/api', apiRoutes);
+} catch (error) {
+  console.error('Error loading routes:', error);
+  app.use('/api', (req: any, res: any) => {
+    res.status(500).json({
+      statusCode: 500,
+      message: 'Server configuration error',
+      error: 'Routes loading failed'
+    });
+  });
+}
 
 // 404 handler untuk route yang tidak ditemukan
 app.use('*', (req: any, res: any) => {
